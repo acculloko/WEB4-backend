@@ -16,5 +16,5 @@ export class UserDto {
     password: string;
 
     @IsOptional()
-    purchases: [UserPurchasesDto]
+    purchases: string;
 }

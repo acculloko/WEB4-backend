@@ -1,25 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { UserDto } from './dto/user.dto';
 import { v4 as uuid } from 'uuid';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserEntity } from 'src/db/entities/user.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class UserService {
-    private readonly users: UserDto[] = [
-        {
-            id: 'uuidgamer',
-            name: 'user',
-            password: '12345678',
-            email: 'email@email.com',
-            purchases: [{
-                api_name: 'api gamer',
-                api_token: '1234',
-                api_exp_date: '06/10/2025'
-            }]
-        }
-    ]
 
-    login(email: string, password: string) {
-        const foundUser = this.findByEmail(email);
+    constructor(
+        @InjectRepository(UserEntity)
+        private readonly userRepository: Repository<UserEntity>
+    ) {}
+
+    async login(email: string, password: string) {
+        const foundUser = await this.findByEmail(email);
 
         if (!foundUser || foundUser.password != password) {
             return false;
@@ -29,17 +24,61 @@ export class UserService {
 
     }
 
-    create(newUser: UserDto) {
-        newUser.id = uuid();
-        this.users.push(newUser);
-        // console.log(this.users)
+    async create(newUser: UserDto) {
+        const registered = await this.findByEmail(newUser.email);
+
+        if (registered) {
+            return false
+        }
+
+        const dbUser = new UserEntity();
+        dbUser.name = newUser.name;
+        dbUser.email = newUser.email;
+        dbUser.password = newUser.password;
+
+        let purchases = newUser.purchases;
+        purchases = JSON.stringify(purchases);
+        console.log(purchases)
+        dbUser.purchases = purchases
+
+        const { id, email } = await this.userRepository.save(dbUser);
+
+        return id
     }
 
-    findByEmail(email: string): UserDto | null {
-        return this.users.find(user => user.email === email);
+    async findByEmail(email: string): Promise<UserDto | null> {
+        const foundUser = await this.userRepository.findOne({
+            where: { email }
+        });
+
+        if (!foundUser) {
+            return null
+        }
+
+        return {
+            id: foundUser.id,
+            name: foundUser.name,
+            email: foundUser.email,
+            password: foundUser.password,
+            purchases: foundUser.purchases
+        }
     }
 
-    findById(id: string): UserDto | null {
-        return this.users.find(user => user.id === id);
+    async findById(id: string): Promise<UserDto | null> {
+        const foundUser = await this.userRepository.findOne({
+            where: { id }
+        });
+
+        if (!foundUser) {
+            return null
+        }
+
+        return {
+            id: foundUser.id,
+            name: foundUser.name,
+            email: foundUser.email,
+            password: foundUser.password,
+            purchases: foundUser.purchases
+        }
     }
 }
