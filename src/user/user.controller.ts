@@ -14,8 +14,7 @@ export class UserController {
 
     @Post('register')
     create(@Body() user: UserDto) {
-        this.userService.create(user)
-        // console.log(user);
+        return this.userService.create(user)
     }
 
     @Get('/:id')
